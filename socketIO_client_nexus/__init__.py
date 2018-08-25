@@ -1,3 +1,4 @@
+from datetime import datetime
 import atexit
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
@@ -250,6 +251,7 @@ class EngineIO(LoggingMixin):
                 try:
                     self._process_packets()
                 except TimeoutError:
+                    print("%s Timer out Error"%(datetime.now()))
                     pass
                 except KeyboardInterrupt:
                     self._close()
