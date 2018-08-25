@@ -236,7 +236,7 @@ class EngineIO(LoggingMixin):
 
     # React
 
-    def wait(self, seconds=None, **kw):
+    def wait(self, seconds=None, max_timeout_cnt=3, **kw):
         'Wait in a loop and react to events as defined in the namespaces'
         # Use ping/pong to unblock recv for polling transport
         self._heartbeat_thread.hurry()
@@ -244,15 +244,20 @@ class EngineIO(LoggingMixin):
         self._transport.set_timeout(seconds=1)
         # Listen
         warning_screen = self._yield_warning_screen(seconds)
+        timeout_cnt = 0
         for elapsed_time in warning_screen:
             if self._should_stop_waiting(**kw):
                 break
             try:
                 try:
                     self._process_packets()
+                    timeout_cnt = 0
                 except TimeoutError:
-                    print("%s Timer out Error"%(datetime.now()))
-                    pass
+                    print("%s Timer out Error, count %d"%(datetime.now(), timeout_cnt))
+                    timeout_cnt += 1
+                    if timeout_cnt > max_timeout_cnt:
+                        self._close()
+                        raise TimeoutError('Encountered %d consecutive TimeoutError'%(max_timeout_cnt))
                 except KeyboardInterrupt:
                     self._close()
                     raise
